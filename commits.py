@@ -7,6 +7,7 @@ from pygit2 import Commit, Repository, GIT_SORT_TOPOLOGICAL
 from typing import Generator, Optional, Tuple
 from utils import indent
 import argparse
+import json
 import os
 import subprocess
 import re
@@ -15,12 +16,20 @@ def get_message_heading(message: str) -> str:
     '''Get a first line of commit message.'''
     return message.split('\n')[0]
 
-def get_pname_for_attrname(attrname: str) -> Optional[str]:
-    '''Obtain project name by evaluating the `pname` attribute of the expression denoted by the passed attribute name.'''
-    pname = subprocess.run(['nix', 'eval', '-f', '.', f'{attrname}.pname', '--raw'], stdout=subprocess.PIPE, encoding='utf-8')
+GNOME_MIRROR_REGEX = re.compile(r'(?:mirror://gnome|(?:ftp|http)s?://(?:ftp.gnome.org/pub/gnome|download.gnome.org))/sources/(?P<project>[^/]+)')
+
+def get_gnome_project_name_for_attrname(attrname: str) -> Optional[str]:
+    '''Obtain name of a project hosted by GNOME by evaluating the `urls` from the `src` attribute of the expression denoted by the passed attribute name.'''
+    pname = subprocess.run(['nix', 'eval', '-f', '.', f'{attrname}.src.urls', '--json'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding='utf-8')
 
     if pname.returncode == 0:
-        return pname.stdout
+        urls = json.loads(pname.stdout)
+
+        for url in urls:
+            match = GNOME_MIRROR_REGEX.match(url)
+
+            if match:
+                return match.group('project')
 
     return None
 
@@ -51,9 +60,13 @@ def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: 
 
         if heading_info:
             attrname, old_version, new_version = heading_info
-            pname = get_pname_for_attrname(attrname)
 
-            if pname:
+            # ignore non-GNOME packages
+            pname = get_gnome_project_name_for_attrname(attrname)
+
+            if not pname:
+                changes = 'Probably not a GNOME package'
+            else:
                 changes = '\n\n'.join(list(get_changes(pname, old_version, new_version)))
 
         if not changes:

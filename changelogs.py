@@ -2,7 +2,7 @@
 #! nix-shell -p python3 -p python3.pkgs.libversion -p python3.pkgs.requests -i python3
 
 from libversion import Version
-from typing import Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 import argparse
 import json
 import requests
@@ -24,9 +24,14 @@ def version_patch(version: str) -> str:
     '''Extract patch segment out of a version string.'''
     return version.split('.')[2]
 
-def fetch_text(uri: str) -> str:
+def fetch_text(uri: str) -> Optional[str]:
     '''Fetch text from a given URI.'''
-    return requests.get(uri).text
+    response = requests.get(uri)
+
+    if response.ok:
+        return response.text
+
+    return None
 
 VersionFiles = Dict[str, str]
 VersionsFiles = Dict[str, VersionFiles]
@@ -48,7 +53,8 @@ def get_version_changes(pname: str, version: Version, version_files: VersionsFil
 
 def fetch_cache(pname: str) -> Tuple[VersionsFiles, Versions, BranchFiles]:
     '''Obtain a cache.json file for a given package and return the parsed content.'''
-    cache = json.loads(fetch_text(f'https://ftp.gnome.org/pub/GNOME/sources/{pname}/cache.json'))
+    cache_data = fetch_text(f'https://ftp.gnome.org/pub/GNOME/sources/{pname}/cache.json')
+    cache = json.loads(cache_data)
 
     # The structure of cache.json: https://gitlab.gnome.org/Infrastructure/sysadmin-bin/blob/master/ftpadmin#L762
     if not isinstance(cache, list) or cache[0] != 4:
