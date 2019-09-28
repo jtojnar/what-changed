@@ -69,7 +69,7 @@ def get_changes(pname: str, start_version: Version, end_version: Version) -> Ite
     version_files, versions, _branch_files = fetch_cache(pname)
 
     def is_relevant(version):
-        return start_version <= version <= end_version
+        return start_version < version <= end_version
 
     relevant_versions = sorted(filter(is_relevant, map(Version, versions)))
 
