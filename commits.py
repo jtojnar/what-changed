@@ -20,7 +20,7 @@ GNOME_MIRROR_REGEX = re.compile(r'(?:mirror://gnome|(?:ftp|http)s?://(?:ftp.gnom
 
 def get_gnome_project_name_for_attrname(attrname: str) -> Optional[str]:
     '''Obtain name of a project hosted by GNOME by evaluating the `urls` from the `src` attribute of the expression denoted by the passed attribute name.'''
-    pname = subprocess.run(['nix', 'eval', '-f', '.', f'{attrname}.src.urls', '--json'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding='utf-8')
+    pname = subprocess.run(['nix-instantiate', '--eval', '-A', f'{attrname}.src.urls', '--json'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding='utf-8')
 
     if pname.returncode == 0:
         urls = json.loads(pname.stdout)
