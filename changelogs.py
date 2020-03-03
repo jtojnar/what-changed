@@ -44,7 +44,8 @@ def get_change(pname: str, version_name: str, group: VersionFiles) -> str:
     changes = group.get('news', group.get('changes'))
 
     if changes:
-        return fetch_text(f'https://ftp.gnome.org/pub/GNOME/sources/{pname}/{changes}')
+        uri = f'https://ftp.gnome.org/pub/GNOME/sources/{pname}/{changes}'
+        return f'({uri})\n{fetch_text(uri)}'
 
     return f'No file describing changes found for group in cluster with “{version_name}”'
 
