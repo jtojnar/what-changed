@@ -51,6 +51,28 @@ def parse_commit_heading(heading: str) -> Optional[Tuple[str, Version, Version]]
 
     return None
 
+def get_changes_for_attrname(attrname: str, old_version: Version, new_version: Version) -> str:
+    try:
+        attr_exists = subprocess.check_output(['nix-instantiate', '--eval', '-E', f'with import ./. {{ config.allowAliases = false; }}; pkgs ? {attrname}', '--json'], encoding='utf-8') == 'true'
+
+        if not attr_exists:
+            alias_exists = subprocess.check_output(['nix-instantiate', '--eval', '-E', f'with import ./. {{ config.allowAliases = true; }}; pkgs ? {attrname}', '--json'], encoding='utf-8') == 'true'
+
+            if alias_exists:
+                return f'“{attrname}” is an alias'
+            else:
+                return f'Attribute “{attrname}” does not exist'
+    except subprocess.CalledProcessError as e:
+        return f'Error verifying the existence of “{attrname}”'
+
+    # ignore non-GNOME packages
+    pname = get_gnome_project_name_for_attrname(attrname)
+
+    if not pname:
+        return 'Probably not a GNOME package'
+    else:
+        return '\n\n'.join(list(get_changes(pname, old_version, new_version)))
+
 def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: Commit) -> Generator[Tuple[str, str, str], None, None]:
     for commit in repo.walk(end_commit.id, GIT_SORT_TOPOLOGICAL):
         heading = get_message_heading(commit.message)
@@ -61,13 +83,7 @@ def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: 
         if heading_info:
             attrname, old_version, new_version = heading_info
 
-            # ignore non-GNOME packages
-            pname = get_gnome_project_name_for_attrname(attrname)
-
-            if not pname:
-                changes = 'Probably not a GNOME package'
-            else:
-                changes = '\n\n'.join(list(get_changes(pname, old_version, new_version)))
+            changes = get_changes_for_attrname(attrname, old_version, new_version)
 
         if not changes:
             changes = 'Unable to recognize updated package.'
