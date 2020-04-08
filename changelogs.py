@@ -39,20 +39,52 @@ VersionsFiles = Dict[str, VersionFiles]
 Versions = List[str]
 BranchFiles = Dict[str, List[str]]
 
-LINK_PATTERN = re.compile(r'(?<!\w)(?P<prefix>!|#)(?P<number>[0-9]+)\b')
+LINK_PATTERN = re.compile(r'''
+     (?<!\w)(?:gitlab|(?P<cross>GNOME/[a-z-]+))?(?P<prefix>(?:MR)?!|\#)(?P<number>[0-9]+)\b # common GitLab references !12, #15, GNOME/gcr!24, gitlab#25, gitlab!37, MR!17
+    |:(?P<rst_prefix>mr):`(?P<rst_number>[0-9]+)` # reStructuredText references: :mr:`12`
+    |(?<!\w)(?:(?P<evo_cross>[a-z]+)-)?(?P<evo_prefix>M!|I\#)(?P<evo_number>[0-9]+)\b # used by mcrha’s projects: M!12, I#15, evo-I#25
+''', re.VERBOSE)
 
-def link_match_url(pname: str, match: re.Match) -> str:
+def link_match_url(pname: str, match: re.Match) -> Optional[str]:
     '''Process regex match into a URL'''
-    segments = {
-        '!': 'merge_requests',
-        '#': 'issues',
-    }
+    if match.group('number'):
+        segments = {
+            '!': 'merge_requests',
+            'MR!': 'merge_requests',
+            '#': 'issues',
+        }
 
-    segment = segments[match.group('prefix')]
-    number = match.group('number')
-    url = f'https://gitlab.gnome.org/GNOME/{pname}/{segment}/{number}'
+        repo = match.group('cross') or f'GNOME/{pname}'
+        segment = segments[match.group('prefix')]
+        number = match.group('number')
+    elif match.group('rst_number'):
+        segments = {
+            'mr': 'merge_requests',
+        }
 
-    return url
+        repo = f'GNOME/{pname}'
+        segment = segments[match.group('rst_prefix')]
+        number = match.group('rst_number')
+    elif match.group('evo_number'):
+        xlink_mapping = {
+            'evo': 'evolution',
+            'eds': 'evolution-data-server',
+            'ews': 'evolution-ews',
+            None: pname,
+        }
+        segments = {
+            'M!': 'merge_requests',
+            'I#': 'issues',
+        }
+
+        if match.group('evo_cross') not in xlink_mapping:
+            return None
+
+        repo = 'GNOME/{}'.format(xlink_mapping[match.group('evo_cross')])
+        segment = segments[match.group('evo_prefix')]
+        number = match.group('evo_number')
+
+    return f'https://gitlab.gnome.org/{repo}/{segment}/{number}'
 
 def ocs_8_link(label: str, url: str) -> str:
     '''Return OCS-8 hyperlink ANSI sequence.'''
@@ -63,7 +95,8 @@ def linkify(pname: str, text: str) -> str:
 
     def replace_link(match: re.Match) -> str:
         label = match.group(0)
-        return ocs_8_link(label, link_match_url(pname, match))
+        url = link_match_url(pname, match)
+        return ocs_8_link(label, url) if url else label
 
     return LINK_PATTERN.sub(replace_link, text)
 
