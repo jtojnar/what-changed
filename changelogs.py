@@ -39,23 +39,33 @@ VersionsFiles = Dict[str, VersionFiles]
 Versions = List[str]
 BranchFiles = Dict[str, List[str]]
 
-def linkify(pname: str, text: str) -> str:
-    '''Replace GitLab-style issue and merge request references in a text for OCS-8 hyperlinks.'''
-    link_pattern = re.compile(r'(?<!\w)(?P<prefix>!|#)(?P<number>[0-9]+)\b')
+LINK_PATTERN = re.compile(r'(?<!\w)(?P<prefix>!|#)(?P<number>[0-9]+)\b')
+
+def link_match_url(pname: str, match: re.Match) -> str:
+    '''Process regex match into a URL'''
     segments = {
         '!': 'merge_requests',
         '#': 'issues',
     }
 
-    def replace_link(match):
-        segment = segments[match.group('prefix')]
-        number = match.group('number')
-        url = f'https://gitlab.gnome.org/GNOME/{pname}/{segment}/{number}'
+    segment = segments[match.group('prefix')]
+    number = match.group('number')
+    url = f'https://gitlab.gnome.org/GNOME/{pname}/{segment}/{number}'
+
+    return url
+
+def ocs_8_link(label: str, url: str) -> str:
+    '''Return OCS-8 hyperlink ANSI sequence.'''
+    return f'\x1b]8;;{url}\x1b\\{label}\x1b]8;;\x1b\\'
+
+def linkify(pname: str, text: str) -> str:
+    '''Replace GitLab-style issue and merge request references in a text for OCS-8 hyperlinks.'''
+
+    def replace_link(match: re.Match) -> str:
         label = match.group(0)
+        return ocs_8_link(label, link_match_url(pname, match))
 
-        return f'\x1b]8;;{url}\x1b\\{label}\x1b]8;;\x1b\\'
-
-    return link_pattern.sub(replace_link, text)
+    return LINK_PATTERN.sub(replace_link, text)
 
 def get_change(pname: str, version_name: str, group: VersionFiles, rich_text: bool) -> str:
     '''From a group of files for certain version, try to obtain files with changes. Either hand-written news or changes generated from the list of commits.'''
