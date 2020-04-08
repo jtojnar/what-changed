@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#! nix-shell -p python3 -p python3.pkgs.libversion -p python3.pkgs.requests -i python3
+#! nix-shell -I nixpkgs=channel:nixos-unstable -p python3 -p python3.pkgs.libversion -p python3.pkgs.requests -i python3
 
 from libversion import Version
 from typing import Dict, Iterator, List, Optional, Tuple

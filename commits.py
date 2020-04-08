@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#! nix-shell -p python3 -p python3.pkgs.libversion -p python3.pkgs.requests -p python3.pkgs.pygit2 -i python3
+#! nix-shell -I nixpkgs=channel:nixos-unstable -p python3 -p python3.pkgs.libversion -p python3.pkgs.requests -p python3.pkgs.pygit2 -i python3
 
 from changelogs import get_changes
 from libversion import Version
