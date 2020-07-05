@@ -1,12 +1,8 @@
-#!/usr/bin/env nix-shell
-#! nix-shell -I nixpkgs=channel:nixos-unstable -p python3 -p python3.pkgs.libversion -p python3.pkgs.requests -p python3.pkgs.pygit2 -i python3
-
-from changelogs import get_changes
+from .changelogs import get_changes
+from .utils import indent
 from libversion import Version
 from pygit2 import Commit, Repository, GIT_SORT_TOPOLOGICAL
 from typing import Generator, Optional, Tuple
-from utils import indent
-import argparse
 import json
 import os
 import subprocess
@@ -94,13 +90,7 @@ def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: 
             # no need to continue further
             break
 
-def main():
-    parser = argparse.ArgumentParser(description='Obtain the list of changes for updates in commit range.')
-    parser.add_argument('start-commit', help='First commit.')
-    parser.add_argument('end-commit', help='Last commit (defaults to HEAD).', nargs='?', default='HEAD')
-
-    args = parser.parse_args()
-
+def main(args):
     repo = Repository(os.getcwd())
 
     start_commit = repo.revparse_single(getattr(args, 'start-commit'))
@@ -110,6 +100,3 @@ def main():
     for commit, heading, changes in get_changes_for_commits(repo, start_commit, end_commit, rich_text):
         print(f'{commit}: {heading}')
         print(indent(changes))
-
-if __name__ == '__main__':
-    main()

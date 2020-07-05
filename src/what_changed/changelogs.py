@@ -1,9 +1,5 @@
-#!/usr/bin/env nix-shell
-#! nix-shell -I nixpkgs=channel:nixos-unstable -p python3 -p python3.pkgs.libversion -p python3.pkgs.requests -i python3
-
 from libversion import Version
 from typing import Dict, Iterator, List, Optional, Tuple
-import argparse
 import json
 import requests
 import re
@@ -144,14 +140,7 @@ def get_changes(pname: str, start_version: Version, end_version: Version, rich_t
 
     return version_changes
 
-def main():
-    parser = argparse.ArgumentParser(description='Obtain the list of changes between two versions of GNOME.')
-    parser.add_argument('package-name', help='Name of the directory in https://download.gnome.org/sources/ containing the package.')
-    parser.add_argument('start-version', help='Old version of package.')
-    parser.add_argument('end-version', help='New version of package.')
-
-    args = parser.parse_args()
-
+def main(args):
     pname = getattr(args, 'package-name')
     start_version = Version(getattr(args, 'start-version'))
     end_version = Version(getattr(args, 'end-version'))
@@ -159,6 +148,3 @@ def main():
 
     for change in get_changes(pname, start_version, end_version, rich_text):
         print(change)
-
-if __name__ == '__main__':
-    main()
