@@ -1,6 +1,6 @@
 import unittest
 
-from changelogs import LINK_PATTERN, link_match_url
+from src.what_changed.changelogs import LINK_PATTERN, link_match_url
 
 def linkify(text: str) -> str:
     return LINK_PATTERN.sub(lambda m: link_match_url('foo', m) or m.group(0), text)
