@@ -25,6 +25,10 @@ def fetch_text(uri: str) -> Optional[str]:
     '''Fetch text from a given URI.'''
     response = requests.get(uri)
 
+    # GNOME files are likely UTF-8 so let’s not fallback to ISO
+    if response.encoding is None:
+        response.encoding = 'utf-8'
+
     if response.ok:
         return response.text
 
