@@ -26,6 +26,7 @@ class TestLinkification(unittest.TestCase):
         self.assertEqual(linkify('#29boo'), '#29boo')
 
     def test_matches_rst(self):
+        self.assertEqual(linkify(':issue:`78`'), 'https://gitlab.gnome.org/GNOME/foo/issues/78')
         self.assertEqual(linkify(':mr:`77`'), 'https://gitlab.gnome.org/GNOME/foo/merge_requests/77')
 
     def test_matches_evo(self):

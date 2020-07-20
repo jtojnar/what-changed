@@ -41,7 +41,7 @@ BranchFiles = Dict[str, List[str]]
 
 LINK_PATTERN = re.compile(r'''
      (?<!\w)(?:gitlab|(?P<cross>GNOME/[a-z-]+))?(?P<prefix>(?:MR)?!|\#)(?P<number>[0-9]+)\b # common GitLab references !12, #15, GNOME/gcr!24, gitlab#25, gitlab!37, MR!17
-    |:(?P<rst_prefix>mr):`(?P<rst_number>[0-9]+)` # reStructuredText references: :mr:`12`
+    |:(?P<rst_prefix>(issue|mr)):`(?P<rst_number>[0-9]+)` # reStructuredText references: :issue:`15`, :mr:`12`
     |(?<!\w)(?:(?P<evo_cross>[a-z]+)-)?(?P<evo_prefix>M!|I\#)(?P<evo_number>[0-9]+)\b # used by mcrha’s projects: M!12, I#15, evo-I#25
 ''', re.VERBOSE)
 
@@ -59,6 +59,7 @@ def link_match_url(pname: str, match: re.Match) -> Optional[str]:
         number = match.group('number')
     elif match.group('rst_number'):
         segments = {
+            'issue': 'issues',
             'mr': 'merge_requests',
         }
 
