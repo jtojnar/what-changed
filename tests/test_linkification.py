@@ -42,5 +42,8 @@ class TestLinkification(unittest.TestCase):
         self.assertEqual(linkify('moo-M!25'), 'moo-M!25')
         self.assertEqual(linkify('moo-I#19'), 'moo-I#19')
 
+    def test_matches_lp(self):
+        self.assertEqual(linkify('LP:#1234567'), 'https://bugs.launchpad.net/launchpad/+bug/1234567')
+
 if __name__ == '__main__':
     unittest.main()

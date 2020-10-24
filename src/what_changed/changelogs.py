@@ -43,6 +43,7 @@ LINK_PATTERN = re.compile(r'''
      (?<!\w)(?:gitlab|(?P<cross>GNOME/[a-z-]+))?(?P<prefix>(?:MR)?!|\#)(?P<number>[0-9]+)\b # common GitLab references !12, #15, GNOME/gcr!24, gitlab#25, gitlab!37, MR!17
     |:(?P<rst_prefix>(issue|mr)):`(?P<rst_number>[0-9]+)` # reStructuredText references: :issue:`15`, :mr:`12`
     |(?<!\w)(?:(?P<evo_cross>[a-z]+)-)?(?P<evo_prefix>M!|I\#)(?P<evo_number>[0-9]+)\b # used by mcrha’s projects: M!12, I#15, evo-I#25
+    |LP:\#(?P<launchpad_number>[0-9]+) # launchpad link: LP:#1234567
 ''', re.VERBOSE)
 
 def link_match_url(pname: str, match: re.Match) -> Optional[str]:
@@ -84,6 +85,11 @@ def link_match_url(pname: str, match: re.Match) -> Optional[str]:
         repo = 'GNOME/{}'.format(xlink_mapping[match.group('evo_cross')])
         segment = segments[match.group('evo_prefix')]
         number = match.group('evo_number')
+    elif match.group('launchpad_number'):
+        number = match.group('launchpad_number')
+
+        # We are using the Launchpad project, it will be redirected to the correct one.
+        return f'https://bugs.launchpad.net/launchpad/+bug/{number}'
 
     return f'https://gitlab.gnome.org/{repo}/{segment}/{number}'
 
