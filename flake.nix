@@ -7,26 +7,31 @@
 
   outputs = { self, nixpkgs, utils }: utils.lib.eachDefaultSystem (system: let
     pkgs = import nixpkgs { inherit system; };
-    overrides = [
-      pkgs.poetry2nix.defaultPoetryOverrides
-      (import ./overrides.nix { inherit pkgs; })
-    ];
   in {
     devShell = pkgs.mkShell {
       buildInputs = [
-        (pkgs.poetry2nix.mkPoetryEnv {
-          projectDir = ./.;
-
-          inherit overrides;
-        })
+        self.packages.${system}.what-changed
         pkgs.poetry
       ];
     };
 
-    packages.what-changed = pkgs.poetry2nix.mkPoetryApplication {
-      projectDir = ./.;
+    packages.what-changed = pkgs.python3.pkgs.buildPythonApplication {
+      pname = "what-changed";
+      version = "0.0.0";
 
-      inherit overrides;
+      format = "pyproject";
+
+      src = ./.;
+
+      nativeBuildInputs = [
+        pkgs.poetry
+      ];
+
+      propagatedBuildInputs = with pkgs.python3.pkgs; [
+        libversion
+        requests
+        pygit2
+      ];
 
       passthru.execPath = "/bin/what-changed";
     };
