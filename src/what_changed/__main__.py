@@ -1,10 +1,20 @@
 from .commits import main as handle_commits
 from .changelogs import main as handle_changelogs
+from .formatters import HtmlFormatter, TerminalFormatter
 import argparse
 import sys
 
 def main():
     parser = argparse.ArgumentParser()
+
+    formatters = {
+        'plain': ('No postprocessing', lambda: None),
+        'html': ('Add HTML links', HtmlFormatter),
+        'terminal': ('Add ANSI terminal escape sequences for hyperlinks', TerminalFormatter),
+    }
+
+    parser.add_argument('--format', dest='formatter', help='Output format for post-processing (e.g. for adding hyperlinks).', default='terminal', choices=formatters.keys())
+
     subparsers = parser.add_subparsers()
 
     # create the parser for the "foo" command
@@ -21,6 +31,8 @@ def main():
     parser_commits.set_defaults(func=handle_commits)
 
     args = parser.parse_args()
+    setattr(args, 'formatter', formatters[getattr(args, 'formatter')][1]())
+
     if 'func' in args:
         args.func(args)
     else:

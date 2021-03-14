@@ -1,3 +1,4 @@
+from .formatters import Formatter
 from libversion import Version
 from typing import Dict, Iterator, List, Optional, Tuple
 import json
@@ -93,21 +94,17 @@ def link_match_url(pname: str, match: re.Match) -> Optional[str]:
 
     return f'https://gitlab.gnome.org/{repo}/{segment}/{number}'
 
-def ocs_8_link(label: str, url: str) -> str:
-    '''Return OCS-8 hyperlink ANSI sequence.'''
-    return f'\x1b]8;;{url}\x1b\\{label}\x1b]8;;\x1b\\'
-
-def linkify(pname: str, text: str) -> str:
-    '''Replace GitLab-style issue and merge request references in a text for OCS-8 hyperlinks.'''
+def linkify(pname: str, text: str, formatter: Formatter) -> str:
+    '''Replace GitLab-style issue and merge request references in a text for hyperlinks.'''
 
     def replace_link(match: re.Match) -> str:
         label = match.group(0)
         url = link_match_url(pname, match)
-        return ocs_8_link(label, url) if url else label
+        return formatter.link(label, url) if url else label
 
     return LINK_PATTERN.sub(replace_link, text)
 
-def get_change(pname: str, version_name: str, group: VersionFiles, rich_text: bool) -> str:
+def get_change(pname: str, version_name: str, group: VersionFiles, formatter: Optional[Formatter]) -> str:
     '''From a group of files for certain version, try to obtain files with changes. Either hand-written news or changes generated from the list of commits.'''
 
     changes = group.get('news', group.get('changes'))
@@ -115,15 +112,15 @@ def get_change(pname: str, version_name: str, group: VersionFiles, rich_text: bo
     if changes:
         uri = f'https://ftp.gnome.org/pub/GNOME/sources/{pname}/{changes}'
         contents = fetch_text(uri)
-        if rich_text:
-            contents = linkify(pname, contents)
+        if formatter:
+            contents = linkify(pname, contents, formatter)
 
         return f'({uri})\n{contents}'
 
     return f'No file describing changes found for group in cluster with “{version_name}”'
 
-def get_version_changes(pname: str, version: Version, version_files: VersionsFiles, rich_text: bool) -> str:
-    return get_change(pname, version.value, version_files[version.value], rich_text)
+def get_version_changes(pname: str, version: Version, version_files: VersionsFiles, formatter: Optional[Formatter]) -> str:
+    return get_change(pname, version.value, version_files[version.value], formatter)
 
 def fetch_cache(pname: str) -> Tuple[VersionsFiles, Versions, BranchFiles]:
     '''Obtain a cache.json file for a given package and return the parsed content.'''
@@ -139,7 +136,7 @@ def fetch_cache(pname: str) -> Tuple[VersionsFiles, Versions, BranchFiles]:
 
     return (version_files[pname], versions[pname], branch_files)
 
-def get_changes(pname: str, start_version: Version, end_version: Version, rich_text: bool) -> Iterator[str]:
+def get_changes(pname: str, start_version: Version, end_version: Version, formatter: Optional[Formatter]) -> Iterator[str]:
     version_files, versions, _branch_files = fetch_cache(pname)
 
     def is_relevant(version):
@@ -147,7 +144,7 @@ def get_changes(pname: str, start_version: Version, end_version: Version, rich_t
 
     relevant_versions = sorted(filter(is_relevant, map(Version, versions)))
 
-    version_changes = map(lambda version: get_version_changes(pname, version, version_files, rich_text), relevant_versions)
+    version_changes = map(lambda version: get_version_changes(pname, version, version_files, formatter), relevant_versions)
 
     return version_changes
 
@@ -155,7 +152,7 @@ def main(args):
     pname = getattr(args, 'package-name')
     start_version = Version(getattr(args, 'start-version'))
     end_version = Version(getattr(args, 'end-version'))
-    rich_text = True
+    formatter = getattr(args, 'formatter')
 
-    for change in get_changes(pname, start_version, end_version, rich_text):
+    for change in get_changes(pname, start_version, end_version, formatter):
         print(change)

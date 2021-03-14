@@ -1,4 +1,5 @@
 from .changelogs import get_changes
+from .formatters import Formatter
 from .utils import indent
 from libversion import Version
 from pygit2 import Commit, Repository, GIT_SORT_TOPOLOGICAL
@@ -47,7 +48,7 @@ def parse_commit_heading(heading: str) -> Optional[Tuple[str, Version, Version]]
 
     return None
 
-def get_changes_for_attrname(attrname: str, old_version: Version, new_version: Version, rich_text: bool) -> str:
+def get_changes_for_attrname(attrname: str, old_version: Version, new_version: Version, formatter: Optional[Formatter]) -> str:
     try:
         attr_exists = subprocess.check_output(['nix-instantiate', '--eval', '-E', f'with import ./. {{ config.allowAliases = false; }}; pkgs ? {attrname}', '--json'], encoding='utf-8') == 'true'
 
@@ -67,9 +68,9 @@ def get_changes_for_attrname(attrname: str, old_version: Version, new_version: V
     if not pname:
         return 'Probably not a GNOME package'
     else:
-        return '\n\n'.join(list(get_changes(pname, old_version, new_version, rich_text)))
+        return '\n\n'.join(list(get_changes(pname, old_version, new_version, formatter)))
 
-def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: Commit, rich_text: bool) -> Generator[Tuple[str, str, str], None, None]:
+def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: Commit, formatter: Optional[Formatter]) -> Generator[Tuple[str, str, str], None, None]:
     for commit in repo.walk(end_commit.id, GIT_SORT_TOPOLOGICAL):
         heading = get_message_heading(commit.message)
         heading_info = parse_commit_heading(heading)
@@ -79,7 +80,7 @@ def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: 
         if heading_info:
             attrname, old_version, new_version = heading_info
 
-            changes = get_changes_for_attrname(attrname, old_version, new_version, rich_text)
+            changes = get_changes_for_attrname(attrname, old_version, new_version, formatter)
 
         if not changes:
             changes = 'Unable to recognize updated package.'
@@ -95,8 +96,8 @@ def main(args):
 
     start_commit = repo.revparse_single(getattr(args, 'start-commit'))
     end_commit = repo.revparse_single(getattr(args, 'end-commit'))
-    rich_text = True
+    formatter = getattr(args, 'formatter')
 
-    for commit, heading, changes in get_changes_for_commits(repo, start_commit, end_commit, rich_text):
+    for commit, heading, changes in get_changes_for_commits(repo, start_commit, end_commit, formatter):
         print(f'{commit}: {heading}')
         print(indent(changes))
