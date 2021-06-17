@@ -9,9 +9,13 @@
     pkgs = import nixpkgs { inherit system; };
   in {
     devShell = pkgs.mkShell {
+      nativeBuildInputs = [
+        pkgs.python3.pkgs.poetry
+        pkgs.pkg-config
+      ];
+
       buildInputs = [
-        self.packages.${system}.what-changed
-        pkgs.poetry
+        pkgs.libversion
       ];
     };
 
@@ -24,7 +28,7 @@
       src = ./.;
 
       nativeBuildInputs = [
-        pkgs.poetry
+        pkgs.python3.pkgs.poetry-core
       ];
 
       propagatedBuildInputs = with pkgs.python3.pkgs; [
