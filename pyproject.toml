@@ -14,7 +14,7 @@ requests = "^2.23"
 pygit2 = "^1.2"
 
 [tool.poetry.dev-dependencies]
-mypy = "^0.770"
+mypy = "^0.812"
 
 [tool.poetry.scripts]
 what-changed = 'what_changed.__main__:main'
