@@ -12,45 +12,52 @@
     utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, utils, ... }: utils.lib.eachDefaultSystem (system: let
-    pkgs = import nixpkgs { inherit system; };
-  in {
-    devShell = pkgs.mkShell {
-      nativeBuildInputs = [
-        pkgs.python3.pkgs.poetry
-        pkgs.pkg-config
-      ];
+  outputs = { self, nixpkgs, utils, ... }: utils.lib.eachDefaultSystem (system:
+    let
+      pkgs = import nixpkgs {
+        inherit system;
+      };
+    in
+    {
+      devShell = pkgs.mkShell {
+        nativeBuildInputs = [
+          pkgs.python3.pkgs.poetry
+          pkgs.pkg-config
+        ];
 
-      buildInputs = [
-        pkgs.libversion
-      ];
-    };
+        buildInputs = [
+          pkgs.libversion
+        ];
+      };
 
-    packages.what-changed = pkgs.python3.pkgs.buildPythonApplication {
-      pname = "what-changed";
-      version = "0.0.0";
+      packages.what-changed = pkgs.python3.pkgs.buildPythonApplication {
+        pname = "what-changed";
+        version = "0.0.0";
 
-      format = "pyproject";
+        format = "pyproject";
 
-      src = ./.;
+        src = ./.;
 
-      nativeBuildInputs = [
-        pkgs.python3.pkgs.poetry-core
-      ];
+        nativeBuildInputs = [
+          pkgs.python3.pkgs.poetry-core
+        ];
 
-      propagatedBuildInputs = with pkgs.python3.pkgs; [
-        libversion
-        requests
-        pygit2
-      ];
+        propagatedBuildInputs = with pkgs.python3.pkgs; [
+          libversion
+          requests
+          pygit2
+        ];
 
-      passthru.execPath = "/bin/what-changed";
-    };
+        passthru.execPath = "/bin/what-changed";
+      };
 
-    defaultPackage = self.packages.${system}.what-changed;
+      defaultPackage = self.packages.${system}.what-changed;
 
-    apps.what-changed = utils.lib.mkApp { drv = self.packages.${system}.what-changed; };
+      apps.what-changed = utils.lib.mkApp {
+        drv = self.packages.${system}.what-changed;
+      };
 
-    defaultApp = self.apps.${system}.what-changed;
-  });
+      defaultApp = self.apps.${system}.what-changed;
+    }
+  );
 }
