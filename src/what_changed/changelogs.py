@@ -112,6 +112,8 @@ def get_change(pname: str, version_name: str, group: VersionFiles, formatter: Op
     if changes:
         uri = f'https://ftp.gnome.org/pub/GNOME/sources/{pname}/{changes}'
         contents = fetch_text(uri)
+        if not contents:
+            contents = 'Unable to fetch'
         if formatter:
             contents = linkify(pname, contents, formatter)
 
@@ -125,6 +127,10 @@ def get_version_changes(pname: str, version: Version, version_files: VersionsFil
 def fetch_cache(pname: str) -> Tuple[VersionsFiles, Versions, BranchFiles]:
     '''Obtain a cache.json file for a given package and return the parsed content.'''
     cache_data = fetch_text(f'https://ftp.gnome.org/pub/GNOME/sources/{pname}/cache.json')
+    if not cache_data:
+        print(f'Unable to fetch cache.json for {pname}.', file=sys.stderr)
+        sys.exit(1)
+
     cache = json.loads(cache_data)
 
     # The structure of cache.json: https://gitlab.gnome.org/Infrastructure/sysadmin-bin/blob/master/ftpadmin#L762
