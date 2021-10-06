@@ -17,10 +17,10 @@ jobs:
         uses: cachix/install-nix-action@v12
 
       - name: Check syntax
-        run: nix-shell --run 'black -l 99999 --check --diff src/ tests/'
+        run: nix-shell --run 'make lint-syntax'
 
       - name: Check types
-        run: nix-shell --run 'mypy --ignore-missing-imports src'
+        run: nix-shell --run 'make check-types'
 
       - name: Run unit tests
-        run: nix-shell --run 'python3 -m unittest'
+        run: nix-shell --run 'make test'
