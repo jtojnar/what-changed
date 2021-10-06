@@ -21,6 +21,7 @@
     {
       devShell = pkgs.mkShell {
         nativeBuildInputs = [
+          pkgs.python3.pkgs.black
           pkgs.python3.pkgs.poetry
           pkgs.pkg-config
           pkgs.python3.pkgs.mypy

@@ -16,6 +16,9 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v12
 
+      - name: Check syntax
+        run: nix-shell --run 'black -l 99999 --check --diff src/ tests/'
+
       - name: Check types
         run: nix-shell --run 'mypy --ignore-missing-imports src'
 

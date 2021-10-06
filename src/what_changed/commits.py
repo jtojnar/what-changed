@@ -9,15 +9,18 @@ import os
 import subprocess
 import re
 
-def get_message_heading(message: str) -> str:
-    '''Get a first line of commit message.'''
-    return message.split('\n')[0]
 
-GNOME_MIRROR_REGEX = re.compile(r'(?:mirror://gnome|(?:ftp|http)s?://(?:ftp.gnome.org/pub/gnome|download.gnome.org))/sources/(?P<project>[^/]+)')
+def get_message_heading(message: str) -> str:
+    """Get a first line of commit message."""
+    return message.split("\n")[0]
+
+
+GNOME_MIRROR_REGEX = re.compile(r"(?:mirror://gnome|(?:ftp|http)s?://(?:ftp.gnome.org/pub/gnome|download.gnome.org))/sources/(?P<project>[^/]+)")
+
 
 def get_gnome_project_name_for_attrname(attrname: str) -> Optional[str]:
-    '''Obtain name of a project hosted by GNOME by evaluating the `urls` from the `src` attribute of the expression denoted by the passed attribute name.'''
-    pname = subprocess.run(['nix-instantiate', '--eval', '-A', f'{attrname}.src.urls', '--json'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding='utf-8')
+    """Obtain name of a project hosted by GNOME by evaluating the `urls` from the `src` attribute of the expression denoted by the passed attribute name."""
+    pname = subprocess.run(["nix-instantiate", "--eval", "-A", f"{attrname}.src.urls", "--json"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding="utf-8")
 
     if pname.returncode == 0:
         urls = json.loads(pname.stdout)
@@ -26,49 +29,52 @@ def get_gnome_project_name_for_attrname(attrname: str) -> Optional[str]:
             match = GNOME_MIRROR_REGEX.match(url)
 
             if match:
-                return match.group('project')
+                return match.group("project")
 
     return None
 
+
 def parse_commit_heading(heading: str) -> Optional[Tuple[str, Version, Version]]:
-    '''Parse nixpkgs-style commit header.'''
-    msg_pattern = re.compile(r'^(?P<attrname>[^:]+):\s*(?P<old_version>.+)\s*(?:→|->)\s*(?P<new_version>.+)$')
+    """Parse nixpkgs-style commit header."""
+    msg_pattern = re.compile(r"^(?P<attrname>[^:]+):\s*(?P<old_version>.+)\s*(?:→|->)\s*(?P<new_version>.+)$")
     match = msg_pattern.match(heading)
 
     if match:
-        attrname = match.group('attrname').strip()
+        attrname = match.group("attrname").strip()
 
-        if attrname.startswith('fixup!') or attrname.startswith('squash!'):
+        if attrname.startswith("fixup!") or attrname.startswith("squash!"):
             return None
 
-        old_version = Version(match.group('old_version').strip())
-        new_version = Version(match.group('new_version').strip())
+        old_version = Version(match.group("old_version").strip())
+        new_version = Version(match.group("new_version").strip())
 
         return (attrname, old_version, new_version)
 
     return None
 
+
 def get_changes_for_attrname(attrname: str, old_version: Version, new_version: Version, formatter: Optional[Formatter]) -> str:
     try:
-        attr_exists = subprocess.check_output(['nix-instantiate', '--eval', '-E', f'with import ./. {{ config.allowAliases = false; }}; pkgs ? {attrname}', '--json'], encoding='utf-8') == 'true'
+        attr_exists = subprocess.check_output(["nix-instantiate", "--eval", "-E", f"with import ./. {{ config.allowAliases = false; }}; pkgs ? {attrname}", "--json"], encoding="utf-8") == "true"
 
         if not attr_exists:
-            alias_exists = subprocess.check_output(['nix-instantiate', '--eval', '-E', f'with import ./. {{ config.allowAliases = true; }}; pkgs ? {attrname}', '--json'], encoding='utf-8') == 'true'
+            alias_exists = subprocess.check_output(["nix-instantiate", "--eval", "-E", f"with import ./. {{ config.allowAliases = true; }}; pkgs ? {attrname}", "--json"], encoding="utf-8") == "true"
 
             if alias_exists:
-                return f'“{attrname}” is an alias'
+                return f"“{attrname}” is an alias"
             else:
-                return f'Attribute “{attrname}” does not exist'
+                return f"Attribute “{attrname}” does not exist"
     except subprocess.CalledProcessError as e:
-        return f'Error verifying the existence of “{attrname}”'
+        return f"Error verifying the existence of “{attrname}”"
 
     # ignore non-GNOME packages
     pname = get_gnome_project_name_for_attrname(attrname)
 
     if not pname:
-        return 'Probably not a GNOME package'
+        return "Probably not a GNOME package"
     else:
-        return '\n\n'.join(list(get_changes(pname, old_version, new_version, formatter)))
+        return "\n\n".join(list(get_changes(pname, old_version, new_version, formatter)))
+
 
 def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: Commit, formatter: Optional[Formatter]) -> Generator[Tuple[str, str, str], None, None]:
     for commit in repo.walk(end_commit.id, GIT_SORT_TOPOLOGICAL):
@@ -83,7 +89,7 @@ def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: 
             changes = get_changes_for_attrname(attrname, old_version, new_version, formatter)
 
         if not changes:
-            changes = 'Unable to recognize updated package.'
+            changes = "Unable to recognize updated package."
 
         yield (commit.id, heading, changes)
 
@@ -91,13 +97,14 @@ def get_changes_for_commits(repo: Repository, start_commit: Commit, end_commit: 
             # no need to continue further
             break
 
+
 def main(args):
     repo = Repository(os.getcwd())
 
-    start_commit = repo.revparse_single(getattr(args, 'start-commit'))
-    end_commit = repo.revparse_single(getattr(args, 'end-commit'))
-    formatter = getattr(args, 'formatter')
+    start_commit = repo.revparse_single(getattr(args, "start-commit"))
+    end_commit = repo.revparse_single(getattr(args, "end-commit"))
+    formatter = getattr(args, "formatter")
 
     for commit, heading, changes in get_changes_for_commits(repo, start_commit, end_commit, formatter):
-        print(f'{commit}: {heading}')
+        print(f"{commit}: {heading}")
         print(indent(changes))
