@@ -19,45 +19,51 @@
       };
     in
     {
-      devShell = pkgs.mkShell {
-        nativeBuildInputs = [
-          pkgs.python3.pkgs.black
-          pkgs.python3.pkgs.poetry
-          pkgs.pkg-config
-          pkgs.python3.pkgs.mypy
-        ];
+      devShells = {
+        default = pkgs.mkShell {
+          nativeBuildInputs = [
+            pkgs.python3.pkgs.black
+            pkgs.python3.pkgs.poetry
+            pkgs.pkg-config
+            pkgs.python3.pkgs.mypy
+          ];
 
-        buildInputs = self.packages.${system}.what-changed.propagatedBuildInputs;
+          buildInputs = self.packages.${system}.what-changed.propagatedBuildInputs;
+        };
       };
 
-      packages.what-changed = pkgs.python3.pkgs.buildPythonApplication {
-        pname = "what-changed";
-        version = "0.0.0";
+      packages = rec {
+        what-changed = pkgs.python3.pkgs.buildPythonApplication {
+          pname = "what-changed";
+          version = "0.0.0";
 
-        format = "pyproject";
+          format = "pyproject";
 
-        src = ./.;
+          src = ./.;
 
-        nativeBuildInputs = [
-          pkgs.python3.pkgs.poetry-core
-        ];
+          nativeBuildInputs = [
+            pkgs.python3.pkgs.poetry-core
+          ];
 
-        propagatedBuildInputs = with pkgs.python3.pkgs; [
-          libversion
-          requests
-          pygit2
-        ];
+          propagatedBuildInputs = with pkgs.python3.pkgs; [
+            libversion
+            requests
+            pygit2
+          ];
 
-        passthru.execPath = "/bin/what-changed";
+          passthru.execPath = "/bin/what-changed";
+        };
+
+        default = what-changed;
       };
 
-      defaultPackage = self.packages.${system}.what-changed;
+      apps = rec {
+        what-changed = utils.lib.mkApp {
+          drv = self.packages.${system}.what-changed;
+        };
 
-      apps.what-changed = utils.lib.mkApp {
-        drv = self.packages.${system}.what-changed;
+        default = what-changed;
       };
-
-      defaultApp = self.apps.${system}.what-changed;
     }
   );
 }
